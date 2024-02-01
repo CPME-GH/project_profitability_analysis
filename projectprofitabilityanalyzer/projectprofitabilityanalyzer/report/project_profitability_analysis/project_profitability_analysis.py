@@ -39,7 +39,7 @@ def get_data(filters):
         FROM
             `tabSales Order` AS so
         WHERE
-            so.project = %s 
+            so.project = %s AND so.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
     sales_invoices = frappe.db.sql("""
@@ -55,7 +55,7 @@ def get_data(filters):
         FROM
             `tabSales Invoice` AS si
         WHERE
-            si.project = %s 
+            si.project = %s AND si.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
     purchase_invoices = frappe.db.sql("""
@@ -73,7 +73,7 @@ def get_data(filters):
         INNER JOIN
             `tabPurchase Invoice Item` AS pii ON pi.name = pii.parent
         WHERE
-            pii.project = %s 
+            pii.project = %s AND pi.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
 
@@ -92,7 +92,7 @@ def get_data(filters):
         LEFT JOIN
             `tabStock Entry Detail` AS sed ON se.name = sed.parent
         WHERE
-            sed.project = %s AND se.purpose = 'Material Issue'
+            sed.project = %s AND se.purpose = 'Material Issue' AND se.docstatus = 1
         GROUP BY
             sed.item_code
     """, (currency, filters['project']), as_dict=1)
@@ -112,7 +112,7 @@ def get_data(filters):
         LEFT JOIN
             `tabTimesheet Detail` AS tsd ON ts.name = tsd.parent
         WHERE
-            tsd.project = %s 
+            tsd.project = %s AND ts.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
     expense_claims = frappe.db.sql("""
@@ -128,7 +128,7 @@ def get_data(filters):
         FROM
             `tabExpense Claim` AS ec
         WHERE
-            ec.project = %s
+            ec.project = %s AND ec.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
     total_amount_orders = sum(so['amount'] for so in sales_orders)
