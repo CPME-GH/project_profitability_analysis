@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include projectprofitabilityanalyzer *.css
+recursive-include projectprofitabilityanalyzer *.csv
+recursive-include projectprofitabilityanalyzer *.html
+recursive-include projectprofitabilityanalyzer *.ico
+recursive-include projectprofitabilityanalyzer *.js
+recursive-include projectprofitabilityanalyzer *.json
+recursive-include projectprofitabilityanalyzer *.md
+recursive-include projectprofitabilityanalyzer *.png
+recursive-include projectprofitabilityanalyzer *.py
+recursive-include projectprofitabilityanalyzer *.svg
+recursive-include projectprofitabilityanalyzer *.txt
+recursive-exclude projectprofitabilityanalyzer *.pyc
