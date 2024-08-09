@@ -60,7 +60,8 @@ def get_data(filters):
 
     purchase_invoices = frappe.db.sql("""
         SELECT
-            pii.item_code as item,
+            pii.description as item,
+            # pi.name as item,
             'Purchase Invoice' as voucher_type,
             pi.name as voucher_no,
             pii.qty as qty,
@@ -72,8 +73,12 @@ def get_data(filters):
             `tabPurchase Invoice` AS pi
         INNER JOIN
             `tabPurchase Invoice Item` AS pii ON pi.name = pii.parent
+        INNER JOIN
+            `tabItem` AS i ON pii.item_code = i.name
         WHERE
-            pii.project = %s AND pi.docstatus = 1
+            pii.project = %s
+            AND pi.docstatus = 1
+            AND i.is_stock_item = 0
     """, (currency, filters['project']), as_dict=1)
 
 
@@ -103,8 +108,10 @@ def get_data(filters):
             'Timesheet' as voucher_type,
             ts.name as voucher_no,
             tsd.hours as qty,
-            IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as rate,
-            tsd.hours * IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as amount,
+            # IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as rate,
+            tsd.costing_rate as rate,
+            # tsd.hours * IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as amount,
+            tsd.hours * tsd.costing_rate as amount,
             %s as currency,
             1 as indent 
         FROM
@@ -115,20 +122,40 @@ def get_data(filters):
             tsd.project = %s AND ts.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
+    # expense_claims = frappe.db.sql("""
+    #     SELECT
+    #         'Expense Claim' as voucher_type,
+    #         ec.name as voucher_no,
+    #         '' as qty,
+    #         '' as rate,
+    #         ec.total_sanctioned_amount as amount,
+    #         ec.employee_name as item,
+    #         %s as currency,
+    #         1 as indent 
+    #     FROM
+    #         `tabExpense Claim` AS ec
+    #     WHERE
+    #         ec.project = %s AND ec.docstatus = 1
+    # """, (currency, filters['project']), as_dict=1)
+
     expense_claims = frappe.db.sql("""
         SELECT
+            ecd.expense_type as item,
             'Expense Claim' as voucher_type,
             ec.name as voucher_no,
-            '' as qty,
-            '' as rate,
-            ec.total_sanctioned_amount as amount,
-            ec.employee_name as item,
+            '1' as qty,
+            ecd.amount as rate,
+            # ec.total_sanctioned_amount as amount,
+            ecd.amount as amount,
+            # ec.employee_name as item,
             %s as currency,
             1 as indent 
         FROM
             `tabExpense Claim` AS ec
+        LEFT JOIN
+            `tabExpense Claim Detail` AS ecd ON ec.name = ecd.parent
         WHERE
-            ec.project = %s AND ec.docstatus = 1
+            ecd.project = %s AND ec.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
     total_amount_orders = sum(so['amount'] for so in sales_orders)
