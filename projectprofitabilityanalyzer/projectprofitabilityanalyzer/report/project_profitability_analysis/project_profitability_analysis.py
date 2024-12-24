@@ -73,7 +73,8 @@ def get_data(filters):
         INNER JOIN
             `tabDelivery Note Item` AS dni ON dn.name = dni.parent
         WHERE
-            dn.project = %s AND dn.docstatus = 1
+            dn.project = %s AND dn.docstatus = 1 AND dni.rate > 0   AND dni.amount > 0
+
     """, (currency, filters['project']), as_dict=1)
 
     purchase_invoices = frappe.db.sql("""
