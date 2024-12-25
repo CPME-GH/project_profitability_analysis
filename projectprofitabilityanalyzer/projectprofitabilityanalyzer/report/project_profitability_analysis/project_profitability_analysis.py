@@ -58,6 +58,25 @@ def get_data(filters):
             si.project = %s AND si.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
+    delivery_notes = frappe.db.sql("""
+        SELECT
+            dni.item_code as item,
+            'Delivery Note' as voucher_type,
+            dn.name as voucher_no,
+            dni.qty as qty,
+            dni.rate as rate,
+            dni.amount as amount,
+            %s as currency,
+            1 as indent 
+        FROM
+            `tabDelivery Note` AS dn
+        INNER JOIN
+            `tabDelivery Note Item` AS dni ON dn.name = dni.parent
+        WHERE
+            dn.project = %s AND dn.docstatus = 1 AND dni.rate > 0   AND dni.amount > 0
+
+    """, (currency, filters['project']), as_dict=1)
+
     purchase_invoices = frappe.db.sql("""
         SELECT
             pii.description as item,
@@ -160,11 +179,12 @@ def get_data(filters):
 
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
+    total_amount_delivery_notes = sum(dn['amount'] for dn in delivery_notes)
     total_amount_purchases = sum(pi['amount'] for pi in purchase_invoices)
     total_amount_stock_entries = sum(se['amount'] for se in stock_entries)
     total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
     total_amount_expense_claims = sum(ec['amount'] for ec in expense_claims)
-    total_cost = sum([total_amount_expense_claims, total_amount_timesheets, total_amount_stock_entries, total_amount_purchases])
+    total_cost = sum([total_amount_expense_claims, total_amount_timesheets, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes])
     margin = total_amount_invoices - total_cost
     margin_ord = total_amount_orders - total_cost
 
@@ -206,6 +226,20 @@ def get_data(filters):
                 'indent': 0  
             }
         ] + sales_invoices
+
+    if total_amount_delivery_notes:
+        data += [
+            {
+                'item': 'Total Delivery Note Cost',
+                'voucher_type': '',
+                'voucher_no': '',
+                'qty': '',
+                'rate': '',
+                'amount': total_amount_delivery_notes,
+                'currency': currency,
+                'indent': 0 
+            }
+        ] + delivery_notes
 
     if total_amount_purchases:
         data += [
@@ -262,7 +296,6 @@ def get_data(filters):
                 'indent': 0 
             }
         ] + expense_claims
-
 
     data += [
         {
