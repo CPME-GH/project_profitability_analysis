@@ -12,15 +12,20 @@ def get_columns():
     return [
         {"label": "Item", "fieldname": "item", "fieldtype": "Data", "width": 300},
         {"label": "Voucher Type", "fieldname": "voucher_type", "fieldtype": "Data", "width": 200, "align":"center"},
+        {"label": "Employee", "fieldname": "employee", "fieldtype": "Data", "width": 200, "align":"center"},
         {"label": "Voucher No", "fieldname": "voucher_no", "fieldtype": "Data", "width": 200, "align":"center"},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Data", "width": 100, "align":"center"},
         {"label": "Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 200},
-        {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 200}
+        {"label": "Total Hours", "fieldname": "total_hours", "fieldtype": "float", "width": 200},
+        {"label": "Total Manpower Cost", "fieldname": "total_manpower_cost", "fieldtype": "Currency", "width": 150},
+        {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 200},
     ]
 
 def get_data(filters):
     if 'project' not in filters:
         return []
+def get_data(filters):
+    project = filters.get("project")
     
     company = frappe.db.get_value("Project", filters['project'], "company")
     currency = frappe.db.get_value("Company", company, "default_currency")
@@ -35,7 +40,7 @@ def get_data(filters):
             so.net_total as rate,
             so.total as amount,
             %s as currency,
-            1 as indent  
+            1 as indent
         FROM
             `tabSales Order` AS so
         WHERE
@@ -177,6 +182,44 @@ def get_data(filters):
             ecd.project = %s AND ec.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
+
+    # total_manpower_cost = frappe.db.sql("""
+    #     SELECT
+    #         e.name as item,e.custom_hourly_rate as hourly_rate,
+    #         sum(ts.total_hours) * e.custom_hourly_rate as total_manpower_cost,
+    #         1 as indent,'' as qty ,'' as rate,'' as amount
+    #     FROM 
+    #         `tabTimesheet` ts
+    #     JOIN 
+    #         `tabEmployee` e ON  ts.employee = e.name
+    #     WHERE 
+    #         ts.parent_project = %(project)s  AND ts.docstatus =1
+    #     GROUP BY 
+    #         ts.parent_project, ts.employee
+    # """, {"project": project}, as_dict=True)
+
+
+    total_manpower_cost = frappe.db.sql("""
+        SELECT
+            e.name as item,
+            e.custom_hourly_rate as hourly_rate,
+            SUM(ts.total_hours) as total_hours,
+            SUM(ts.total_hours) * e.custom_hourly_rate as total_manpower_cost,
+            1 as indent,
+            '' as qty,
+            '' as rate,
+            '' as amount
+        FROM 
+            `tabTimesheet` ts
+        JOIN 
+            `tabEmployee` e ON ts.employee = e.name
+        WHERE 
+            ts.parent_project = %(project)s AND ts.docstatus = 1
+        GROUP BY 
+            ts.parent_project, ts.employee
+        """, {"project": project}, as_dict=True)
+
+
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
     total_amount_delivery_notes = sum(dn['amount'] for dn in delivery_notes)
@@ -184,6 +227,7 @@ def get_data(filters):
     total_amount_stock_entries = sum(se['amount'] for se in stock_entries)
     total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
     total_amount_expense_claims = sum(ec['amount'] for ec in expense_claims)
+    total_manpower =  sum(mp['total_manpower_cost'] for mp in total_manpower_cost)
     total_cost = sum([total_amount_expense_claims, total_amount_timesheets, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes])
     margin = total_amount_invoices - total_cost
     margin_ord = total_amount_orders - total_cost
@@ -254,6 +298,20 @@ def get_data(filters):
                 'indent': 0  
             }
         ] + purchase_invoices
+    if total_manpower_cost:
+        data += [
+                {
+                    'item': 'Total  Manpower Cost',
+                    'voucher_type': '',
+                    'voucher_no': '',
+                    'qty': '',
+                    'rate': '',
+                    'amount': "",
+                    'currency': currency,
+                    'indent': 0 ,
+                    'total_manpower_cost':total_manpower
+                }
+            ] + total_manpower_cost
 
     if total_amount_stock_entries:
         data += [
@@ -355,7 +413,6 @@ def get_data(filters):
             'indent': 0 
         }
     ]
-
     return data
 
 
