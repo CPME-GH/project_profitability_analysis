@@ -16,7 +16,7 @@ def get_columns():
         {"label": "Voucher No", "fieldname": "voucher_no", "fieldtype": "Data", "width": 200, "align":"center"},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Data", "width": 100, "align":"center"},
         {"label": "Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 200},
-        {"label": "Total Hours", "fieldname": "total_hours", "fieldtype": "float", "width": 200},
+        {"label": "Total Man Hours", "fieldname": "total_hours", "fieldtype": "float", "width": 200},
         {"label": "Total Manpower Cost", "fieldname": "total_manpower_cost", "fieldtype": "Currency", "width": 150},
         {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 200},
     ]
@@ -182,41 +182,44 @@ def get_data(filters):
             ecd.project = %s AND ec.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
-
     # total_manpower_cost = frappe.db.sql("""
     #     SELECT
-    #         e.name as item,e.custom_hourly_rate as hourly_rate,
-    #         sum(ts.total_hours) * e.custom_hourly_rate as total_manpower_cost,
-    #         1 as indent,'' as qty ,'' as rate,'' as amount
+    #         e.name as item,
+    #         e.custom_hourly_rate as hourly_rate,
+    #         SUM(ts.total_hours) as total_hours,
+    #         SUM(ts.total_hours) * e.custom_hourly_rate as total_manpower_cost,
+    #         1 as indent,
+    #         '' as qty,
+    #         '' as rate,
+    #         '' as amount
     #     FROM 
     #         `tabTimesheet` ts
     #     JOIN 
-    #         `tabEmployee` e ON  ts.employee = e.name
-    #     WHERE 
-    #         ts.parent_project = %(project)s  AND ts.docstatus =1
-    #     GROUP BY 
-    #         ts.parent_project, ts.employee
-    # """, {"project": project}, as_dict=True)
-
+    #         `tabEmployee` e ON ts.employee = e.name
+        # WHERE 
+        #     ts.parent_project = %(project)s AND ts.docstatus = 1
+        # GROUP BY 
+        #     ts.parent_project, ts.employee
+    #     """, {"project": project}, as_dict=True)
 
     total_manpower_cost = frappe.db.sql("""
-        SELECT
-            e.name as item,
-            e.custom_hourly_rate as hourly_rate,
-            SUM(ts.total_hours) as total_hours,
-            SUM(ts.total_hours) * e.custom_hourly_rate as total_manpower_cost,
-            1 as indent,
-            '' as qty,
-            '' as rate,
-            '' as amount
-        FROM 
-            `tabTimesheet` ts
-        JOIN 
-            `tabEmployee` e ON ts.employee = e.name
-        WHERE 
-            ts.parent_project = %(project)s AND ts.docstatus = 1
-        GROUP BY 
-            ts.parent_project, ts.employee
+    SELECT
+        e.name as item,
+          e.custom_hourly_rate as hourly_rate,
+        SUM(da.total_man_hour) as total_hours,
+        SUM(da.total_man_hour) * e.custom_hourly_rate as total_manpower_cost,
+        1 as indent,
+        '' as qty,
+        '' as rate,
+        '' as amount
+    FROM 
+        `tabDaily Attendance` da
+    JOIN 
+        `tabEmployee` e ON da.employee = e.name
+    WHERE 
+        da.project = %(project)s AND da.docstatus = 1
+    GROUP BY 
+        da.project, da.employee
         """, {"project": project}, as_dict=True)
 
 
