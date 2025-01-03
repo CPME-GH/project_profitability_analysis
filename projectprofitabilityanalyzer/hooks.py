@@ -10,6 +10,15 @@ app_license = "MIT"
 # Includes in <head>
 # ------------------
 
+
+fixtures = [{'dt':'Custom Field',
+				'filters': [
+					['name', 'in', (
+                    'Employee-custom_hourly_rate')]
+                ]
+			},
+			]
+
 # include js, css files in header of desk.html
 # app_include_css = "/assets/projectprofitabilityanalyzer/css/projectprofitabilityanalyzer.css"
 # app_include_js = "/assets/projectprofitabilityanalyzer/js/projectprofitabilityanalyzer.js"
