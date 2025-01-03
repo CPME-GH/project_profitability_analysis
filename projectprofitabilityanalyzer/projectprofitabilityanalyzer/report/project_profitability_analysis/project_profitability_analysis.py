@@ -16,8 +16,6 @@ def get_columns():
         {"label": "Voucher No", "fieldname": "voucher_no", "fieldtype": "Data", "width": 200, "align":"center"},
         {"label": "Qty", "fieldname": "qty", "fieldtype": "Data", "width": 100, "align":"center"},
         {"label": "Rate", "fieldname": "rate", "fieldtype": "Currency", "width": 200},
-        {"label": "Total Man Hours", "fieldname": "total_hours", "fieldtype": "float", "width": 200},
-        {"label": "Total Manpower Cost", "fieldname": "total_manpower_cost", "fieldtype": "Currency", "width": 150},
         {"label": "Amount", "fieldname": "amount", "fieldtype": "Currency", "width": 200},
     ]
 
@@ -126,40 +124,24 @@ def get_data(filters):
             sed.item_code
     """, (currency, filters['project']), as_dict=1)
 
-    timesheets = frappe.db.sql("""
-        SELECT
-            tsd.activity_type as item,
-            'Timesheet' as voucher_type,
-            ts.name as voucher_no,
-            tsd.hours as qty,
-            # IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as rate,
-            tsd.costing_rate as rate,
-            # tsd.hours * IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as amount,
-            tsd.hours * tsd.costing_rate as amount,
-            %s as currency,
-            1 as indent 
-        FROM
-            `tabTimesheet` AS ts
-        LEFT JOIN
-            `tabTimesheet Detail` AS tsd ON ts.name = tsd.parent
-        WHERE
-            tsd.project = %s AND ts.docstatus = 1
-    """, (currency, filters['project']), as_dict=1)
-
-    # expense_claims = frappe.db.sql("""
+    # timesheets = frappe.db.sql("""
     #     SELECT
-    #         'Expense Claim' as voucher_type,
-    #         ec.name as voucher_no,
-    #         '' as qty,
-    #         '' as rate,
-    #         ec.total_sanctioned_amount as amount,
-    #         ec.employee_name as item,
+    #         tsd.activity_type as item,
+    #         'Timesheet' as voucher_type,
+    #         ts.name as voucher_no,
+    #         tsd.hours as qty,
+    #         # IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as rate,
+    #         tsd.costing_rate as rate,
+    #         # tsd.hours * IFNULL(ts.total_costing_amount / NULLIF(ts.total_hours, 0), 0) as amount,
+    #         tsd.hours * tsd.costing_rate as amount,
     #         %s as currency,
     #         1 as indent 
     #     FROM
-    #         `tabExpense Claim` AS ec
+    #         `tabTimesheet` AS ts
+    #     LEFT JOIN
+    #         `tabTimesheet Detail` AS tsd ON ts.name = tsd.parent
     #     WHERE
-    #         ec.project = %s AND ec.docstatus = 1
+    #         tsd.project = %s AND ts.docstatus = 1
     # """, (currency, filters['project']), as_dict=1)
 
     expense_claims = frappe.db.sql("""
@@ -182,56 +164,34 @@ def get_data(filters):
             ecd.project = %s AND ec.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
-    # total_manpower_cost = frappe.db.sql("""
-    #     SELECT
-    #         e.name as item,
-    #         e.custom_hourly_rate as hourly_rate,
-    #         SUM(ts.total_hours) as total_hours,
-    #         SUM(ts.total_hours) * e.custom_hourly_rate as total_manpower_cost,
-    #         1 as indent,
-    #         '' as qty,
-    #         '' as rate,
-    #         '' as amount
-    #     FROM 
-    #         `tabTimesheet` ts
-    #     JOIN 
-    #         `tabEmployee` e ON ts.employee = e.name
-        # WHERE 
-        #     ts.parent_project = %(project)s AND ts.docstatus = 1
-        # GROUP BY 
-        #     ts.parent_project, ts.employee
-    #     """, {"project": project}, as_dict=True)
 
     total_manpower_cost = frappe.db.sql("""
-    SELECT
-        e.name as item,
-          e.custom_hourly_rate as hourly_rate,
-        SUM(da.total_man_hour) as total_hours,
-        SUM(da.total_man_hour) * e.custom_hourly_rate as total_manpower_cost,
-        1 as indent,
-        '' as qty,
-        '' as rate,
-        '' as amount
-    FROM 
-        `tabDaily Attendance` da
-    JOIN 
-        `tabEmployee` e ON da.employee = e.name
-    WHERE 
-        da.project = %(project)s AND da.docstatus = 1
-    GROUP BY 
-        da.project, da.employee
-        """, {"project": project}, as_dict=True)
-
+        SELECT
+            e.name as item,
+            e.custom_hourly_rate as rate,
+            SUM(da.total_man_hour) as qty,
+            SUM(da.total_man_hour) * e.custom_hourly_rate as amount,
+            %s as currency,
+            1 as indent
+        FROM 
+            `tabDaily Attendance` da
+        JOIN 
+            `tabEmployee` e ON da.employee = e.name
+        WHERE 
+            da.project = %s AND da.docstatus = 1
+        GROUP BY 
+            da.project, da.employee
+            """, (currency,filters['project']), as_dict=1)
 
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
     total_amount_delivery_notes = sum(dn['amount'] for dn in delivery_notes)
     total_amount_purchases = sum(pi['amount'] for pi in purchase_invoices)
     total_amount_stock_entries = sum(se['amount'] for se in stock_entries)
-    total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
+    # total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
     total_amount_expense_claims = sum(ec['amount'] for ec in expense_claims)
-    total_manpower =  sum(mp['total_manpower_cost'] for mp in total_manpower_cost)
-    total_cost = sum([total_amount_expense_claims, total_amount_timesheets, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes])
+    total_manpower =  sum(mp['amount'] for mp in total_manpower_cost)
+    total_cost = sum([total_amount_expense_claims, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes])
     margin = total_amount_invoices - total_cost
     margin_ord = total_amount_orders - total_cost
 
@@ -312,7 +272,7 @@ def get_data(filters):
                     'amount': "",
                     'currency': currency,
                     'indent': 0 ,
-                    'total_manpower_cost':total_manpower
+                    'amount':total_manpower
                 }
             ] + total_manpower_cost
 
@@ -330,19 +290,19 @@ def get_data(filters):
             }
         ] + stock_entries
 
-    if total_amount_timesheets:
-        data += [
-            {
-                'item': 'Total Timesheet Cost',
-                'voucher_type': '',
-                'voucher_no': '',
-                'qty': '',
-                'rate': '',
-                'amount': total_amount_timesheets,
-                'currency': currency,
-                'indent': 0 
-            }
-        ] + timesheets
+    # if total_amount_timesheets:
+    #     data += [
+    #         {
+    #             'item': 'Total Timesheet Cost',
+    #             'voucher_type': '',
+    #             'voucher_no': '',
+    #             'qty': '',
+    #             'rate': '',
+    #             'amount': total_amount_timesheets,
+    #             'currency': currency,
+    #             'indent': 0 
+    #         }
+    #     ] + timesheets
 
     if total_amount_expense_claims:
         data += [
