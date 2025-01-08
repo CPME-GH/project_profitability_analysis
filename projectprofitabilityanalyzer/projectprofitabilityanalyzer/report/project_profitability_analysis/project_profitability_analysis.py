@@ -191,7 +191,7 @@ def get_data(filters):
     # total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
     total_amount_expense_claims = sum(ec['amount'] for ec in expense_claims)
     total_manpower =  sum(mp['amount'] for mp in total_manpower_cost)
-    total_cost = sum([total_amount_expense_claims, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes])
+    total_cost = sum([total_amount_expense_claims, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes,total_manpower])
     margin = total_amount_invoices - total_cost
     margin_ord = total_amount_orders - total_cost
 
