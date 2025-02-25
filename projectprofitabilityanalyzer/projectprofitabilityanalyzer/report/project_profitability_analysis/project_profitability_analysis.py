@@ -34,15 +34,19 @@ def get_data(filters):
             so.name as item,
             'Sales Order' as voucher_type,
             so.name as voucher_no,
-            so.total_qty as qty,
-            so.net_total as rate,
-            so.total as amount,
+            soi.qty as qty,
+            soi.rate as rate,
+            soi.amount as amount,
             %s as currency,
             1 as indent
         FROM
             `tabSales Order` AS so
+        INNER JOIN
+            `tabSales Order Item` AS soi ON soi.parent = so.name
+        INNER JOIN
+            `tabItem` AS i ON soi.item_code = i.name
         WHERE
-            so.project = %s AND so.docstatus = 1
+            so.project = %s AND so.docstatus = 1 AND i.is_stock_item = 1
     """, (currency, filters['project']), as_dict=1)
 
     sales_invoices = frappe.db.sql("""
@@ -50,16 +54,21 @@ def get_data(filters):
             si.name as item,
             'Sales Invoice' as voucher_type,
             si.name as voucher_no,
-            '' as qty,
-            '' as rate,
-            si.total as amount,
+            sii.qty as qty,
+            sii.rate as rate,
+            sii.amount as amount,
             %s as currency,
             1 as indent 
         FROM
             `tabSales Invoice` AS si
+        INNER JOIN
+            `tabSales Invoice Item` AS sii ON sii.parent = si.name
+        INNER JOIN
+            `tabItem` AS i ON sii.item_code = i.name
         WHERE
-            si.project = %s AND si.docstatus = 1
+            si.project = %s AND si.docstatus = 1 AND i.is_stock_item = 1
     """, (currency, filters['project']), as_dict=1)
+
 
     delivery_notes = frappe.db.sql("""
         SELECT
@@ -75,8 +84,10 @@ def get_data(filters):
             `tabDelivery Note` AS dn
         INNER JOIN
             `tabDelivery Note Item` AS dni ON dn.name = dni.parent
+        INNER JOIN
+            `tabItem` AS i ON dni.item_code = i.name
         WHERE
-            dn.project = %s AND dn.docstatus = 1 AND dni.rate > 0   AND dni.amount > 0
+            dn.project = %s AND dn.docstatus = 1 AND dni.rate > 0   AND dni.amount > 0 AND i.is_stock_item = 1
 
     """, (currency, filters['project']), as_dict=1)
 
