@@ -46,7 +46,7 @@ def get_data(filters):
         INNER JOIN
             `tabItem` AS i ON soi.item_code = i.name
         WHERE
-            so.project = %s AND so.docstatus = 1 AND i.is_stock_item = 1
+            so.project = %s AND so.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
     sales_invoices = frappe.db.sql("""
@@ -66,7 +66,7 @@ def get_data(filters):
         INNER JOIN
             `tabItem` AS i ON sii.item_code = i.name
         WHERE
-            si.project = %s AND si.docstatus = 1 AND i.is_stock_item = 1
+            si.project = %s AND si.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
 
