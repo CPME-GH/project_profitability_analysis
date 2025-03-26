@@ -91,6 +91,20 @@ def get_data(filters):
 
     """, (currency, filters['project']), as_dict=1)
 
+    product_bundles = frappe.db.sql("""
+        SELECT dni.item_code as item,
+            'Delivery Note' as voucher_type,
+            dn.name as voucher_no,
+            dni.qty as qty,
+            dni.rate as rate,
+            dni.amount as amount,
+            %s as currency,
+            1 as indent
+        FROM `tabDelivery Note` dn
+        JOIN `tabDelivery Note Item` dni ON dn.name = dni.parent
+        WHERE dni.item_code IN (SELECT new_item_code FROM `tabProduct Bundle`) AND dn.docstatus =1 AND dni.amount > 0 AND dn.project = %s
+    """, (currency, filters['project']), as_dict=1)
+
     purchase_invoices = frappe.db.sql("""
         SELECT
             pii.description as item,
@@ -196,7 +210,8 @@ def get_data(filters):
 
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
-    total_amount_delivery_notes = sum(dn['amount'] for dn in delivery_notes)
+    total_amount_bundles = sum(dnb['amount'] for dnb in product_bundles)
+    total_amount_delivery_notes = total_amount_bundles + sum(dn['amount'] for dn in delivery_notes)
     total_amount_purchases = sum(pi['amount'] for pi in purchase_invoices)
     total_amount_stock_entries = sum(se['amount'] for se in stock_entries)
     # total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
@@ -257,7 +272,7 @@ def get_data(filters):
                 'currency': currency,
                 'indent': 0 
             }
-        ] + delivery_notes
+        ] + delivery_notes + product_bundles
 
     if total_amount_purchases:
         data += [
