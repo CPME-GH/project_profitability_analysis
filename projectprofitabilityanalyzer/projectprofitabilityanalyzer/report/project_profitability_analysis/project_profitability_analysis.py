@@ -33,6 +33,7 @@ def get_data(filters):
         SELECT
             so.name as item,
             'Sales Order' as voucher_type,
+            so.net_total as net_total,
             so.name as voucher_no,
             soi.qty as qty,
             soi.rate as rate,
@@ -45,6 +46,19 @@ def get_data(filters):
             `tabSales Order Item` AS soi ON soi.parent = so.name
         INNER JOIN
             `tabItem` AS i ON soi.item_code = i.name
+        WHERE
+            so.project = %s AND so.docstatus = 1
+    """, (currency, filters['project']), as_dict=1)
+
+    sales_order_net_total = frappe.db.sql("""
+        SELECT
+            so.net_total as net_total,
+    
+            %s as currency,
+            1 as indent
+        FROM
+            `tabSales Order` AS so
+      
         WHERE
             so.project = %s AND so.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
@@ -77,6 +91,8 @@ def get_data(filters):
             dn.name as voucher_no,
             dni.qty as qty,
             dni.rate as rate,
+            dni.incoming_rate as incoming_rate,
+            qty * incoming_rate as cost_amount,
             dni.amount as amount,
             %s as currency,
             1 as indent 
@@ -211,7 +227,7 @@ def get_data(filters):
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
     total_amount_bundles = sum(dnb['amount'] for dnb in product_bundles)
-    total_amount_delivery_notes = total_amount_bundles + sum(dn['amount'] for dn in delivery_notes)
+    total_amount_delivery_notes = total_amount_bundles + sum(dn['cost_amount'] for dn in delivery_notes)
     total_amount_purchases = sum(pi['amount'] for pi in purchase_invoices)
     total_amount_stock_entries = sum(se['amount'] for se in stock_entries)
     # total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
@@ -220,6 +236,10 @@ def get_data(filters):
     total_cost = sum([total_amount_expense_claims, total_amount_stock_entries, total_amount_purchases,total_amount_delivery_notes,total_manpower])
     margin = total_amount_invoices - total_cost
     margin_ord = total_amount_orders - total_cost
+   
+
+    ###########net total calculation for sales order
+    net_total = sum(sales_order['net_total'] for sales_order in sales_order_net_total)
 
     if total_amount_invoices != 0:
         margin_per = (margin / total_amount_invoices) * 100
@@ -232,7 +252,7 @@ def get_data(filters):
         margin_per_ord = " "
 
     data = []
-    if total_amount_orders:
+    if net_total:
         data += [
             {
                 'item': 'Total Sales Order Amount',
@@ -240,7 +260,7 @@ def get_data(filters):
                 'voucher_no': '',
                 'qty': '',
                 'rate': '',
-                'amount': total_amount_orders,
+                'amount': net_total,
                 'currency': currency,
                 'indent': 0  
             }
