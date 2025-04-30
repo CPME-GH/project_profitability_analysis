@@ -53,7 +53,8 @@ def get_data(filters):
     sales_order_net_total = frappe.db.sql("""
         SELECT
             so.net_total as net_total,
-    
+            so.total_taxes_and_charges as total_taxes_and_charges,
+            (so.net_total + so.total_taxes_and_charges) as net_total_with_taxes    
             %s as currency,
             1 as indent
         FROM
@@ -239,7 +240,7 @@ def get_data(filters):
    
 
     ###########net total calculation for sales order
-    net_total = sum(sales_order['net_total'] for sales_order in sales_order_net_total)
+    net_total = sum(sales_order['net_total_with_taxes'] for sales_order in sales_order_net_total)
 
     if total_amount_invoices != 0:
         margin_per = (margin / total_amount_invoices) * 100
