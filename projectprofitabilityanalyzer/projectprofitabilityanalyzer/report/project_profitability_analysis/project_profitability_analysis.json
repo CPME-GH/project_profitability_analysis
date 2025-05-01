@@ -10,30 +10,21 @@
  "idx": 0,
  "is_standard": "Yes",
  "letter_head": "Roots",
- "modified": "2024-02-01 10:54:22.451970",
+ "modified": "2025-05-01 11:30:52.351910",
  "modified_by": "Administrator",
  "module": "ProjectProfitabilityAnalyzer",
  "name": "Project Profitability Analysis",
  "owner": "Administrator",
- "prepared_report": 0,
+ "prepared_report": 1,
  "ref_doctype": "Project",
  "report_name": "Project Profitability Analysis",
  "report_type": "Script Report",
  "roles": [
   {
-   "role": "Projects Manager"
-  },
-  {
-   "role": "Projects User"
-  },
-  {
-   "role": "Employee Self Service"
-  },
-  {
-   "role": "Timesheet User"
-  },
-  {
    "role": "All"
+  },
+  {
+   "role": "Projects Manager"
   }
  ]
 }

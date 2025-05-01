@@ -31,13 +31,12 @@ def get_data(filters):
 
     sales_orders = frappe.db.sql("""
         SELECT
-            so.name as item,
+            soi.item_code as item,
             'Sales Order' as voucher_type,
-            so.net_total as net_total,
             so.name as voucher_no,
             soi.qty as qty,
             soi.rate as rate,
-            soi.amount as amount,
+            (soi.net_amount+ soi.tax_amount) as amount,
             %s as currency,
             1 as indent
         FROM
@@ -50,28 +49,14 @@ def get_data(filters):
             so.project = %s AND so.docstatus = 1
     """, (currency, filters['project']), as_dict=1)
 
-    sales_order_net_total = frappe.db.sql("""
-        SELECT
-            so.net_total as net_total,
-            so.total_taxes_and_charges as total_taxes_and_charges,
-            (so.net_total + so.total_taxes_and_charges) as net_total_with_taxes    
-            %s as currency,
-            1 as indent
-        FROM
-            `tabSales Order` AS so
-      
-        WHERE
-            so.project = %s AND so.docstatus = 1
-    """, (currency, filters['project']), as_dict=1)
-
     sales_invoices = frappe.db.sql("""
         SELECT
-            si.name as item,
+            sii.item_code as item,
             'Sales Invoice' as voucher_type,
             si.name as voucher_no,
             sii.qty as qty,
             sii.rate as rate,
-            sii.amount as amount,
+            (sii.net_amount + sii.tax_amount) as amount,
             %s as currency,
             1 as indent 
         FROM
@@ -238,10 +223,6 @@ def get_data(filters):
     margin = total_amount_invoices - total_cost
     margin_ord = total_amount_orders - total_cost
    
-
-    ###########net total calculation for sales order
-    net_total = sum(sales_order['net_total_with_taxes'] for sales_order in sales_order_net_total)
-
     if total_amount_invoices != 0:
         margin_per = (margin / total_amount_invoices) * 100
     else:
@@ -253,7 +234,7 @@ def get_data(filters):
         margin_per_ord = " "
 
     data = []
-    if net_total:
+    if total_amount_orders:
         data += [
             {
                 'item': 'Total Sales Order Amount',
@@ -261,7 +242,7 @@ def get_data(filters):
                 'voucher_no': '',
                 'qty': '',
                 'rate': '',
-                'amount': net_total,
+                'amount': total_amount_orders,
                 'currency': currency,
                 'indent': 0  
             }
