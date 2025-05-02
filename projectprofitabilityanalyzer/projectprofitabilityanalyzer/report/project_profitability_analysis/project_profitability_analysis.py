@@ -36,7 +36,7 @@ def get_data(filters):
             so.name as voucher_no,
             soi.qty as qty,
             soi.rate as rate,
-            (soi.net_amount+ soi.tax_amount) as amount,
+            soi.net_amount as amount,
             %s as currency,
             1 as indent
         FROM
@@ -56,7 +56,7 @@ def get_data(filters):
             si.name as voucher_no,
             sii.qty as qty,
             sii.rate as rate,
-            (sii.net_amount + sii.tax_amount) as amount,
+            sii.net_amount as amount,
             %s as currency,
             1 as indent 
         FROM
@@ -76,10 +76,8 @@ def get_data(filters):
             'Delivery Note' as voucher_type,
             dn.name as voucher_no,
             dni.qty as qty,
-            dni.rate as rate,
-            dni.incoming_rate as incoming_rate,
-            qty * incoming_rate as cost_amount,
-            dni.amount as amount,
+            dni.incoming_rate as rate,
+            (dni.qty * dni.incoming_rate) as amount,
             %s as currency,
             1 as indent 
         FROM
@@ -213,7 +211,7 @@ def get_data(filters):
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
     total_amount_bundles = sum(dnb['amount'] for dnb in product_bundles)
-    total_amount_delivery_notes = total_amount_bundles + sum(dn['cost_amount'] for dn in delivery_notes)
+    total_amount_delivery_notes = total_amount_bundles + sum(dn['amount'] for dn in delivery_notes)
     total_amount_purchases = sum(pi['amount'] for pi in purchase_invoices)
     total_amount_stock_entries = sum(se['amount'] for se in stock_entries)
     # total_amount_timesheets = sum(ts['amount'] for ts in timesheets)
