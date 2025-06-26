@@ -87,7 +87,7 @@ def get_data(filters):
         INNER JOIN
             `tabItem` AS i ON dni.item_code = i.name
         WHERE
-            dn.project = %s AND dn.docstatus = 1 AND dni.rate > 0   AND dni.amount > 0 AND i.is_stock_item = 1
+            dn.project = %s AND dn.docstatus = 1 AND dni.incoming_rate > 0 AND i.is_stock_item = 1
 
     """, (currency, filters['project']), as_dict=1)
 
