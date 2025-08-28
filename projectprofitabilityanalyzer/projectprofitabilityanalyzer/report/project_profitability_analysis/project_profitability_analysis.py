@@ -8,7 +8,6 @@ def execute(filters=None):
         
     columns = get_columns()
     data = get_data(filters)
-    print(data)
     return columns, data
 
 def get_columns():
@@ -32,7 +31,7 @@ def get_data(filters):
     condition_so = "so.project = '{0}' AND so.docstatus = 1".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_so += " AND so.transaction_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_so += " AND so.transaction_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
     
     company = frappe.db.get_value("Project", filters['project'], "company")
     if not company:
@@ -63,7 +62,7 @@ def get_data(filters):
     condition_si = "si.project = '{0}' AND si.docstatus = 1".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_si += " AND si.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_si += " AND si.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     sales_invoices = frappe.db.sql("""
         SELECT
@@ -83,12 +82,12 @@ def get_data(filters):
             `tabItem` AS i ON sii.item_code = i.name
         WHERE
             {0}
-    """.format(condition_si),currency , as_dict=1)
+    """.format(condition_si), currency, as_dict=1)
 
     condition_dn = "dn.project = '{0}' AND dn.docstatus = 1 AND dni.incoming_rate > 0 AND i.is_stock_item = 1".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_dn += " AND dn.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_dn += " AND dn.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
     
     delivery_notes = frappe.db.sql("""
         SELECT
@@ -113,7 +112,7 @@ def get_data(filters):
     condition_pb = "dn.project = '{0}' AND dn.docstatus = 1 AND dni.item_code IN (SELECT new_item_code FROM `tabProduct Bundle`) AND dni.amount > 0".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_pb += " AND dn.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_pb += " AND dn.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     product_bundles = frappe.db.sql("""
         SELECT
@@ -130,10 +129,10 @@ def get_data(filters):
         WHERE {0}
     """.format(condition_pb), currency, as_dict=1)
 
-    condition_pi = "pi.project = '{0}' AND pi.docstatus = 1 AND i.is_stock_item = 0".format(filters['project'])
+    condition_pi = "pii.project = '{0}' AND pi.docstatus = 1 AND i.is_stock_item = 0".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_pi += " AND pi.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_pi += " AND pi.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     purchase_invoices = frappe.db.sql("""
         SELECT
@@ -158,7 +157,7 @@ def get_data(filters):
     condition_je = "jea.project = '{0}' AND je.docstatus = 1 AND jea.debit_in_account_currency > 0".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_je += " AND je.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_je += " AND je.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     journal_entries = frappe.db.sql("""
         SELECT
@@ -178,10 +177,10 @@ def get_data(filters):
             {0}
     """.format(condition_je), currency, as_dict=1)
 
-    condition_se = "sed.project = '{0}' AND se.docstatus = 1 AND se.purpose = 'Material Issue'".format(filters['project'])
+    condition_se = "sed.project = '{0}' AND se.docstatus = 1 AND se.stock_entry_type IN ('Project Material Issue', 'Project Material Return')".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_se += " AND se.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_se += " AND se.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     stock_entries = frappe.db.sql("""
         SELECT
@@ -206,7 +205,7 @@ def get_data(filters):
     condition_ec = "ec.project = '{0}' AND ec.docstatus = 1".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_ec += " AND ec.posting_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_ec += " AND ec.posting_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     expense_claims = frappe.db.sql("""
         SELECT
@@ -229,7 +228,7 @@ def get_data(filters):
     condition_da = "da.project = '{0}' AND da.docstatus = 1".format(filters['project'])
     
     if filters.get('from_date') and filters.get('to_date'):
-        condition_da += " AND da.selected_date BETWEEN '{0}' AND '{1}'".format(from_date,to_date)
+        condition_da += " AND da.selected_date BETWEEN '{0}' AND '{1}'".format(from_date, to_date)
 
     total_manpower_cost = frappe.db.sql("""
         SELECT
@@ -247,7 +246,7 @@ def get_data(filters):
             {0}
         GROUP BY 
             da.project, da.employee
-   """.format(condition_da), currency, as_dict=1)
+    """.format(condition_da), currency, as_dict=1)
 
     total_amount_orders = sum(so['amount'] for so in sales_orders)
     total_amount_invoices = sum(si['amount'] for si in sales_invoices)
